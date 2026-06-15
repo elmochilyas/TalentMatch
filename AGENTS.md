@@ -10,6 +10,7 @@ The Laravel Boost guidelines are specifically curated by Laravel maintainers for
 This application is a Laravel application and its main Laravel ecosystems package & versions are below. You are an expert with them all. Ensure you abide by these specific packages & versions.
 
 - php - 8.4
+- laravel/ai (AI) - v0
 - laravel/framework (LARAVEL) - v13
 - laravel/prompts (PROMPTS) - v0
 - laravel/boost (BOOST) - v2
@@ -115,6 +116,13 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 - The application is served by Laravel Herd at `https?://[kebab-case-project-dir].test`. Use the `get-absolute-url` tool to generate valid URLs. Never run commands to serve the site. It is always available.
 - Use the `herd` CLI to manage services, PHP versions, and sites (e.g. `herd sites`, `herd services:start <service>`, `herd php:list`). Run `herd list` to discover all available commands.
 
+=== tests rules ===
+
+# Test Enforcement
+
+- Every change must be programmatically tested. Write a new test or update an existing test, then run the affected tests to make sure they pass.
+- Run the minimum number of tests needed to ensure code quality and speed. Use `php artisan test --compact` with a specific filename or filter.
+
 === laravel/core rules ===
 
 # Do Things the Laravel Way
@@ -190,6 +198,23 @@ TalentMatch is a Laravel application that automates candidate prescreening. RH a
 3. **Every feature must be implemented against its spec.** The spec is the source of truth.
 4. **Keep specs inside `specs/` or the OpenSpec folder structure.** Do not scatter spec files.
 5. **Commit regularly with messages mentioning AI-assisted work.** Example: `"feat: candidate CV submission (AI-assisted)"`.
+6. **Use feature branches** matching the feature: `feature/offres-crud`, `feature/analyse-ia`, `feature/agent-conversationnel`.
+
+### Spec Content Requirements
+
+Every spec must include all of the following:
+- **Problem** — what problem does this feature solve?
+- **User stories covered** — which scenarios are addressed?
+- **Scope** — what is included in this feature?
+- **Out of scope** — what is explicitly not included?
+- **Data model impact** — new tables, columns, indexes, relationships?
+- **UI impact** — new or modified views, components?
+- **Validation rules** — what input rules apply?
+- **Acceptance criteria** — how do we know it's done?
+- **Tests to add** — what tests must be written?
+- **Edge cases** — known edge cases and how to handle them?
+- **Security / authorization rules** — who can do what?
+- **Demo explanation notes** — what to say during demo?
 
 ## Required Project Features
 
@@ -234,3 +259,145 @@ The coding assistant should be prepared to explain:
 - **Structured output** — how strict JSON schemas ensure reliable, parseable AI responses.
 - **OpenSpec specs** — where they live, how they drive development.
 - **Commits mentioning AI usage** — commit history showing AI-assisted development patterns.
+
+## Laravel Architecture Standards
+
+- Use Form Request classes for create/update/submit validation.
+- Use policies or ownership checks so RH agents only access their own offers and candidates.
+- Use Eloquent relationships clearly.
+- Use eager loading to avoid N+1 queries.
+- Use enum for recommendation:
+  - `convoquer`
+  - `attente`
+  - `rejeter`
+- Use Eloquent casts for:
+  - required skills arrays
+  - extracted skills arrays
+  - languages arrays
+  - strengths arrays
+  - gaps arrays
+  - missing skills arrays
+  - recommendation enum
+  - matching score integer
+- Keep controllers thin.
+- Put business logic in services/jobs/actions when needed.
+- Use clear route names.
+- Use pagination where lists can grow.
+
+## Database / MCD / MLD Standards
+
+- MCD/MLD must be validated before business migrations.
+- Core entities:
+  - `users` / RH agents (existing Breeze table)
+  - `offres` — belongs to a user
+  - `candidatures` — belongs to an offre, stores raw CV text + structured AI result + status
+- Define cardinalities clearly in specs (1:N, etc.).
+- Define primary keys, foreign keys, nullable fields, indexes, and enum values.
+- Analysis status: `pending`, `processing`, `completed`, `failed`.
+- Conversation memory uses `laravel/ai` SDK tables — do not create custom memory tables unless justified.
+
+## AI Structured Output Standards
+
+The CV analysis must return this strict JSON structure:
+
+```json
+{
+  "competences_extraites": ["string"],
+  "annees_experience": "integer",
+  "niveau_etudes": "string",
+  "langues": ["string"],
+  "matching_score": "integer 0-100",
+  "points_forts": ["string"],
+  "lacunes": ["string"],
+  "competences_manquantes": ["string"],
+  "recommandation": "convoquer | attente | rejeter",
+  "justification": "string"
+}
+```
+
+Rules:
+- The AI must not return free-form unstructured text for saved analysis.
+- The AI must not invent experience, skills, languages, or education.
+- If the CV text is unclear, the AI must mention uncertainty in `justification`.
+- The matching score must be between 0 and 100.
+- The recommendation must match the score and justification.
+- Invalid AI responses must be handled safely.
+- Empty CV must be rejected before the job is dispatched.
+- Offer without required skills must be handled as an edge case.
+
+## Queue / Job Standards
+
+- Candidate analysis must run in background using a job.
+- The UI must not freeze while AI analysis is running.
+- Store analysis status: `pending`, `processing`, `completed`, `failed`.
+- Failed AI calls must be visible to the RH agent.
+- Jobs must be retry-safe where possible.
+
+## AI Assistant / Tool Standards
+
+- The assistant must answer using real Laravel tools for candidate and offer data.
+- Required tools (defined as Laravel AI SDK tools):
+  - `getCandidateAnalysis(int $candidatId)` — returns structured analysis for a candidate
+  - `getJobRequirements(int $offreId)` — returns requirements for a job offer
+  - `compareCandidates(int $id1, int $id2)` — compares two candidates side by side
+- The assistant must not invent candidate information.
+- If a user asks about a candidate, the assistant must retrieve the candidate analysis through a tool.
+- If a user asks about an offer, the assistant must retrieve job requirements through a tool.
+- If a user asks to compare candidates, the assistant must use `compareCandidates`.
+- Conversation memory must support follow-up questions in the same conversation (via `laravel/ai` SDK tables).
+
+## Security Standards
+
+- Authenticated RH agents only (Breeze middleware).
+- Users must only access their own offers and related candidate analyses (policy / ownership check).
+- Validate all user input (Form Requests).
+- Do not expose raw prompts or API keys.
+- Do not store secrets in code.
+- Keep `.env` out of Git.
+- Sanitize / display CV text safely in Blade (`{{ $cvText }}` — never unescaped `{!! !!}`).
+
+## Testing Standards
+
+- Use Pest for all tests.
+- Test auth protection (unauthenticated redirect).
+- Test ownership rules (cannot access another user's offers/candidates).
+- Test offer CRUD (create, read, update, delete).
+- Test CV submission validation (empty CV, missing offer, etc.).
+- Test analysis status flow (pending -> processing -> completed / failed).
+- Test structured output mapping / casts.
+- Test edge cases:
+  - Empty CV submission
+  - Missing required skills on offer
+  - Invalid AI response (malformed JSON, missing fields)
+  - Score outside 0-100
+  - Unauthorized access
+- For AI features, use fakes/mocks where possible instead of calling real API in tests.
+
+## UI Standards
+
+- Keep UI simple and clean with Blade + Tailwind CSS.
+- Dashboard should show RH agent's offers with key info.
+- Offer detail should show criteria and candidates ordered by score.
+- Candidate detail should show:
+  - Score (0-100)
+  - Recommendation with visible label:
+    - À convoquer
+    - En attente
+    - À rejeter
+  - Strengths (`points_forts`)
+  - Gaps (`lacunes`)
+  - Missing skills (`competences_manquantes`)
+  - Justification
+- Show analysis status clearly (pending / processing / completed / failed).
+- Use loading states during analysis processing.
+
+## Demo / Explanation Notes
+
+The project must be easy to explain during demo. Be prepared to answer:
+
+- **Why OpenSpec before code?** — Ensures every feature is intentional, scoped, and validated before implementation. Prevents scope creep and misalignment.
+- **Why queue instead of synchronous AI analysis?** — AI calls can take 10-30 seconds. A queue lets the user submit and continue working. The analysis completes in the background.
+- **Why structured output instead of plain text?** — Structured JSON guarantees parseable, reliable data for display in tables, sorting, filtering, and comparisons. Plain text would be inconsistent.
+- **Why tools instead of assistant guessing?** — Real Laravel tools (`getCandidateAnalysis`, etc.) return actual database data. Without tools, the AI would hallucinate candidate profiles.
+- **Why memory instead of stateless chat?** — The `laravel/ai` SDK conversation tables let users ask follow-up questions like "and what about this other candidate?" with full context.
+- **What was AI-generated and what was manually reviewed?** — Specs, architecture decisions, and critical security rules are manually reviewed. Boilerplate code, migrations following the MCD, test scaffolding, and Blade templates can be AI-generated.
