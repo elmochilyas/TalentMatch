@@ -1,20 +1,108 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  # TalentMatch — Automated Candidate Prescreening
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+  ## Stack
+  - Laravel 13 (PHP 8.4)
+  - Blade + Breeze (auth)
+  - MySQL
+  - Pest 4
+  - Laravel Boost (MCP)
+  - laravel/ai SDK
+  - OpenSpec
+  - Queues / Jobs (background AI)
+  - Tailwind CSS 3, Alpine.js 3
+
+  ## Workflow
+  - OpenSpec proposal -> apply -> implement -> test -> commit
+  - Feature branches: feature/offres-crud, feature/analyse-ia, feature/agent-conversationnel
+  - No business code before OpenSpec proposal + apply
+  - No business migrations before MCD/MLD validation
+  - Commits mention AI-assisted work
+
+  ## Architecture
+  - Form Request classes for validation
+  - Policies / ownership checks
+  - Thin controllers, logic in services/jobs/actions
+  - Eloquent relationships + eager loading
+  - Enum: recommandation (convoquer, attente, rejeter)
+  - Casts: arrays, enum, integer score
+  - Pagination on growing lists
+  - Named routes
+
+  ## Database
+  - users -> offres -> candidatures
+  - offre belongs to user
+  - candidature belongs to offre
+  - Analysis status: pending, processing, completed, failed
+  - Memory via laravel/ai SDK tables
+
+  ## AI Structured Output (CV Analysis)
+  {
+    "competences_extraites": ["string"],
+    "annees_experience": "integer",
+    "niveau_etudes": "string",
+    "langues": ["string"],
+    "matching_score": "integer 0-100",
+    "points_forts": ["string"],
+    "lacunes": ["string"],
+    "competences_manquantes": ["string"],
+    "recommandation": "convoquer | attente | rejeter",
+    "justification": "string"
+  }
+  - No free-form text; must match schema exactly
+  - AI must not invent data; mention uncertainty in justification
+  - Score 0-100, recommendation aligns with score
+  - Invalid AI responses caught safely
+  - Empty CV rejected before dispatch
+
+  ## Queue/Jobs
+  - Analysis runs async via job
+  - Store status: pending, processing, completed, failed
+  - Failed AI calls visible to RH agent
+  - Jobs retry-safe where possible
+
+  ## AI Assistant Tools
+  - getCandidateAnalysis(int $candidatId)
+  - getJobRequirements(int $offreId)
+  - compareCandidates(int $id1, int $id2)
+  - Must use real tools, never hallucinate
+  - Memory via laravel/ai SDK
+
+  ## Security
+  - Authenticated RH agents only (Breeze)
+  - Ownership scoping
+  - Validate all input (Form Requests)
+  - No raw prompts or API keys exposed
+  - .env excluded from Git
+  - Sanitize CV text in Blade ({{ }})
+
+  ## Testing (Pest)
+  - Auth, ownership, CRUD, validation
+  - Analysis status flow
+  - Structured output mapping/casts
+  - Edge cases: empty CV, missing skills, invalid AI, score out of range, unauthorized
+  - Mock/fake AI in tests
+
+  ## UI
+  - Dashboard: RH agent's offers
+  - Offer detail: criteria + candidates ordered by score
+  - Candidate detail: score, recommendation (A convoquer / En attente / A rejeter), strengths, gaps, missing skills, justification
+  - Clear status indicator
+
+  ## Demo
+  - Why OpenSpec before code?
+  - Why queue over synchronous?
+  - Why structured output?
+  - Why tools over guessing?
+  - Why memory over stateless?
+  - AI-generated vs manually reviewed
+
+rules:
+  proposal:
+    - Every spec must include: problem, user stories, scope, out of scope, data model impact, UI impact, validation rules, acceptance criteria, tests to add, edge cases, security/authorization rules, demo explanation notes
+    - Use French for domain terms (offre, candidat, competences, recommandation) in specs and schemas
+  tasks:
+    - Keep tasks small and implementable in one session
+    - Prefix commits with AI-assisted marker when appropriate
