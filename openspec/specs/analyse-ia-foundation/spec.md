@@ -82,24 +82,47 @@ An authenticated RH agent SHALL be able to submit a candidate CV against one of 
 - **WHEN** an authenticated user submits to an offer they do not own
 - **THEN** the system SHALL return a 403 Forbidden error
 
-### Requirement: Background job placeholder
-The system SHALL dispatch a job after CV submission that simulates the analysis lifecycle without calling a real AI API.
+### Requirement: Background AI analysis job
+The system SHALL dispatch a job after CV submission that performs real structured AI analysis using the configured AI provider.
 
 #### Scenario: Job marks analysis as processing
 - **WHEN** `AnalyzeCandidateCvJob` runs
 - **THEN** `statut_analyse` SHALL be set to `processing`
 
-#### Scenario: Job marks analysis as completed with placeholder data
-- **WHEN** `AnalyzeCandidateCvJob` finishes
+#### Scenario: Job calls AI provider with structured output
+- **WHEN** `AnalyzeCandidateCvJob` executes
+- **THEN** it SHALL call the configured AI provider via `laravel/ai` with a schema for strict JSON output
+- **AND** the prompt SHALL include offer details (title, description, required skills, experience level) and candidate CV text
+
+#### Scenario: Job validates and saves structured result
+- **WHEN** the AI returns a response passing all validation checks
 - **THEN** `statut_analyse` SHALL be set to `completed`
-- **AND** the analysis result fields SHALL contain safe placeholder/demo values
+- **AND** the following fields SHALL be saved: `competences_extraites`, `annees_experience`, `niveau_etudes`, `langues`, `matching_score`, `points_forts`, `lacunes`, `competences_manquantes`, `recommandation`, `justification`
+
+#### Scenario: Job handles invalid AI response gracefully
+- **WHEN** the AI response fails validation (missing fields, wrong types, invalid score range, invalid recommendation)
+- **THEN** `statut_analyse` SHALL be set to `failed`
+- **AND** `message_erreur` SHALL contain a descriptive error message
+
+#### Scenario: Job handles exceptions gracefully
+- **WHEN** an unexpected exception occurs during AI call or processing
+- **THEN** `statut_analyse` SHALL be set to `failed`
+- **AND** `message_erreur` SHALL contain the exception message
 
 ### Requirement: Display candidates on offer page
-The offer show page SHALL display submitted candidates with their analysis status.
+The offer show page SHALL display submitted candidates with their analysis status and real analysis data.
 
-#### Scenario: Candidates are listed on offer page
-- **WHEN** an authenticated user views their offer page that has submitted candidates
-- **THEN** each candidate SHALL be displayed with: candidate name, analysis status, score (if available), recommendation (if available), created date
+#### Scenario: Completed analysis shows score and recommendation
+- **WHEN** an authenticated user views their offer page that has a candidate with completed analysis
+- **THEN** the candidate row SHALL display: candidate name, analysis status, matching score (integer), recommendation label (À convoquer / En attente / À rejeter), and created date
+
+#### Scenario: Processing analysis shows processing indicator
+- **WHEN** an analysis is in `processing` status
+- **THEN** the candidate row SHALL display a processing indicator instead of score/recommendation
+
+#### Scenario: Failed analysis shows error message
+- **WHEN** an analysis is in `failed` status
+- **THEN** the candidate row SHALL display the error status and `message_erreur`
 
 #### Scenario: Empty state is shown
 - **WHEN** an authenticated user views their offer page with no submitted candidates
@@ -108,3 +131,31 @@ The offer show page SHALL display submitted candidates with their analysis statu
 #### Scenario: User cannot see another user's offer candidates
 - **WHEN** an authenticated user navigates to another user's offer page
 - **THEN** the system SHALL return a 403 Forbidden error
+
+### Requirement: Eloquent enum casts
+The `AnalyseCandidat` model SHALL cast `statut_analyse` to `StatutAnalyse` enum and `recommandation` to `Recommandation` enum.
+
+#### Scenario: StatutAnalyse cast
+- **WHEN** an `AnalyseCandidat` is retrieved
+- **THEN** `$analyse->statut_analyse` SHALL be a `StatutAnalyse` enum instance
+
+#### Scenario: Recommendation cast
+- **WHEN** an `AnalyseCandidat` with a non-null `recommandation` is retrieved
+- **THEN** `$analyse->recommandation` SHALL be a `Recommandation` enum instance
+- **WHEN** an `AnalyseCandidat` with null `recommandation` is retrieved
+- **THEN** `$analyse->recommandation` SHALL be null
+
+### Requirement: AI provider configuration
+The AI provider and model SHALL be configurable via environment variables without code changes.
+
+#### Scenario: Provider configured via env
+- **WHEN** `AI_PROVIDER` is set in `.env`
+- **THEN** the job SHALL use that provider
+- **WHEN** `AI_PROVIDER` is not set
+- **THEN** the job SHALL use the default provider from `config/ai.php`
+
+#### Scenario: Model configured via env
+- **WHEN** `AI_MODEL` is set in `.env`
+- **THEN** the job SHALL use that model
+- **WHEN** `AI_MODEL` is not set
+- **THEN** the job SHALL use the default model from `config/ai.php`

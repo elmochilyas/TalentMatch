@@ -28,4 +28,17 @@ class CandidatureController extends Controller
         return redirect()->route('offres.show', $offre)
             ->with('success', __('Candidature soumise avec succès.'));
     }
+
+    public function show(Offre $offre, AnalyseCandidat $analyse)
+    {
+        $this->authorize('view', $offre);
+
+        if ($analyse->offre_id !== $offre->id) {
+            abort(404);
+        }
+
+        $analyse->loadMissing('candidat');
+
+        return view('offres.analyse-show', compact('offre', 'analyse'));
+    }
 }

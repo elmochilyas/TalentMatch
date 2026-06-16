@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\Recommandation;
+use App\Enums\StatutAnalyse;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -35,6 +37,8 @@ class AnalyseCandidat extends Model
             'lacunes' => 'array',
             'competences_manquantes' => 'array',
             'matching_score' => 'integer',
+            'statut_analyse' => StatutAnalyse::class,
+            'recommandation' => Recommandation::class,
         ];
     }
 
