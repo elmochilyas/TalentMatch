@@ -83,6 +83,56 @@ it('saves recommendation as valid enum', function () {
     expect($this->analyse->recommandation)->toBeInstanceOf(Recommandation::class);
 });
 
+it('accepts score of 0 as valid', function () {
+    AnalyseCvAgent::fake([
+        [
+            'competences_extraites' => ['PHP'],
+            'annees_experience' => 0,
+            'niveau_etudes' => 'Bac+2',
+            'langues' => ['Français'],
+            'matching_score' => 0,
+            'points_forts' => ['Motivé'],
+            'lacunes' => ['Manque d\'expérience'],
+            'competences_manquantes' => ['Laravel', 'MySQL'],
+            'recommandation' => 'rejeter',
+            'justification' => 'Profil junior sans compétences requises.',
+        ],
+    ]);
+
+    $job = new AnalyzeCandidateCvJob($this->analyse);
+    $job->handle();
+
+    $this->analyse->refresh();
+
+    expect($this->analyse->statut_analyse->value)->toBe('completed');
+    expect($this->analyse->matching_score)->toBe(0);
+});
+
+it('accepts score of 100 as valid', function () {
+    AnalyseCvAgent::fake([
+        [
+            'competences_extraites' => ['PHP', 'Laravel', 'MySQL', 'Docker'],
+            'annees_experience' => 10,
+            'niveau_etudes' => 'Bac+8',
+            'langues' => ['Français', 'Anglais', 'Allemand'],
+            'matching_score' => 100,
+            'points_forts' => ['Expert Laravel', 'Architecture logicielle'],
+            'lacunes' => [],
+            'competences_manquantes' => [],
+            'recommandation' => 'convoquer',
+            'justification' => 'Profil parfaitement adapté au poste.',
+        ],
+    ]);
+
+    $job = new AnalyzeCandidateCvJob($this->analyse);
+    $job->handle();
+
+    $this->analyse->refresh();
+
+    expect($this->analyse->statut_analyse->value)->toBe('completed');
+    expect($this->analyse->matching_score)->toBe(100);
+});
+
 it('fails on invalid score outside 0-100', function () {
     AnalyseCvAgent::fake([
         [
