@@ -93,7 +93,14 @@
 
             <div class="mt-6 bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
-                    <h3 class="text-lg font-semibold mb-4">{{ __('Candidatures soumises') }}</h3>
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold">{{ __('Candidatures soumises') }}</h3>
+                        @if ($offre->analysesCandidats->count() >= 2)
+                            <a href="{{ route('offres.comparaison.index', $offre) }}" class="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 uppercase tracking-widest hover:bg-gray-50">
+                                {{ __('Comparer') }}
+                            </a>
+                        @endif
+                    </div>
 
                     @if ($offre->analysesCandidats->isEmpty())
                         <p class="text-gray-500">{{ __('Aucune candidature soumise pour le moment.') }}</p>

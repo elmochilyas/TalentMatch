@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AssistantController;
 use App\Http\Controllers\CandidatureController;
+use App\Http\Controllers\ComparaisonController;
 use App\Http\Controllers\OffreController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
@@ -25,6 +26,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::post('/offres/{offre}/analyses/{analyse}/assistant', AssistantController::class)
         ->name('offres.analyses.assistant');
+
+    Route::get('/offres/{offre}/comparaison', [ComparaisonController::class, 'index'])
+        ->name('offres.comparaison.index');
+    Route::post('/offres/{offre}/comparaison', [ComparaisonController::class, 'compare'])
+        ->name('offres.comparaison.compare');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
