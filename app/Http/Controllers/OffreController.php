@@ -11,6 +11,7 @@ class OffreController extends Controller
     public function index()
     {
         $offres = Offre::where('user_id', auth()->id())
+            ->withCount('analysesCandidats')
             ->latest()
             ->paginate(10);
 
@@ -34,6 +35,8 @@ class OffreController extends Controller
     public function show(Offre $offre)
     {
         $this->authorize('view', $offre);
+
+        $offre->load(['analysesCandidats.candidat']);
 
         return view('offres.show', compact('offre'));
     }

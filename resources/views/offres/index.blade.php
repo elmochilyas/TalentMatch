@@ -38,7 +38,7 @@
                                             {{ $offre->niveau_experience_minimum ?? '—' }}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            0
+                                            {{ $offre->analyses_candidats_count }}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <a href="{{ route('offres.edit', $offre) }}" class="text-indigo-600 hover:text-indigo-900">{{ __('Modifier') }}</a>
