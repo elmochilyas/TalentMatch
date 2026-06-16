@@ -177,6 +177,10 @@
                     </div>
                 </div>
             @endif
+
+            @include('offres.partials.assistant-chat')
         </div>
     </div>
 </x-app-layout>
+
+@stack('scripts')
