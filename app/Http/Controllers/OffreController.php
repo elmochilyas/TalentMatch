@@ -38,6 +38,18 @@ class OffreController extends Controller
 
         $offre->load(['analysesCandidats.candidat']);
 
+        $analyses = $offre->analysesCandidats;
+
+        $scored = $analyses->filter(
+            fn ($a) => $a->statut_analyse->value === 'completed' && $a->matching_score !== null
+        )->sortByDesc('matching_score');
+
+        $unscored = $analyses->reject(
+            fn ($a) => $a->statut_analyse->value === 'completed' && $a->matching_score !== null
+        );
+
+        $offre->setRelation('analysesCandidats', $scored->concat($unscored));
+
         return view('offres.show', compact('offre'));
     }
 
