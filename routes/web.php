@@ -19,6 +19,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/offres/{offre}/candidatures', [CandidatureController::class, 'store'])
         ->name('offres.candidatures.store');
 
+    Route::get('/offres/{offre}/analyses/{analyse}', [CandidatureController::class, 'show'])
+        ->name('offres.analyses.show');
+
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');

@@ -111,11 +111,14 @@
                             <tbody class="bg-white divide-y divide-gray-200">
                                 @foreach ($offre->analysesCandidats as $analyse)
                                     <tr>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {{ $analyse->candidat->nom_candidat }}
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                            <a href="{{ route('offres.analyses.show', [$offre, $analyse]) }}" class="text-blue-600 hover:underline">
+                                                {{ $analyse->candidat->nom_candidat }}
+                                            </a>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             @php
+                                                $statusValue = $analyse->statut_analyse?->value ?? 'pending';
                                                 $statusClasses = [
                                                     'pending' => 'bg-yellow-100 text-yellow-800',
                                                     'processing' => 'bg-blue-100 text-blue-800',
@@ -129,19 +132,22 @@
                                                     'failed' => __('Échoué'),
                                                 ];
                                             @endphp
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $statusClasses[$analyse->statut_analyse] ?? 'bg-gray-100 text-gray-800' }}">
-                                                {{ $statusLabels[$analyse->statut_analyse] ?? $analyse->statut_analyse }}
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $statusClasses[$statusValue] ?? 'bg-gray-100 text-gray-800' }}">
+                                                {{ $statusLabels[$statusValue] ?? $statusValue }}
                                             </span>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                             {{ $analyse->matching_score ?? '—' }}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            @if ($analyse->recommandation === 'convoquer')
+                                            @php
+                                                $recValue = $analyse->recommandation?->value;
+                                            @endphp
+                                            @if ($recValue === 'convoquer')
                                                 <span class="text-green-600 font-medium">{{ __('À convoquer') }}</span>
-                                            @elseif ($analyse->recommandation === 'attente')
+                                            @elseif ($recValue === 'attente')
                                                 <span class="text-yellow-600 font-medium">{{ __('En attente') }}</span>
-                                            @elseif ($analyse->recommandation === 'rejeter')
+                                            @elseif ($recValue === 'rejeter')
                                                 <span class="text-red-600 font-medium">{{ __('À rejeter') }}</span>
                                             @else
                                                 <span class="text-gray-400">—</span>
@@ -151,6 +157,13 @@
                                             {{ $analyse->created_at->format('d/m/Y') }}
                                         </td>
                                     </tr>
+                                    @if ($statusValue === 'failed' && $analyse->message_erreur)
+                                        <tr>
+                                            <td colspan="5" class="px-6 py-2 text-sm text-red-600 bg-red-50">
+                                                {{ $analyse->message_erreur }}
+                                            </td>
+                                        </tr>
+                                    @endif
                                 @endforeach
                             </tbody>
                         </table>
