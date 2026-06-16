@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\AnalyzeCandidateCvJob;
 use App\Models\AnalyseCandidat;
 use App\Models\Candidat;
 use App\Models\Offre;
@@ -85,7 +86,7 @@ it('creates candidate row on successful submission', function () {
     expect(Candidat::where('nom_candidat', 'Marie Martin')->exists())->toBeTrue();
 });
 
-it('creates analysis row with pending status on submission', function () {
+it('creates analysis row with pending status and dispatches job on submission', function () {
     Queue::fake();
 
     actingAs($this->user)
@@ -93,6 +94,8 @@ it('creates analysis row with pending status on submission', function () {
             'nom_candidat' => 'Marie Martin',
             'cv_texte' => fake()->paragraph(5),
         ]);
+
+    Queue::assertPushed(AnalyzeCandidateCvJob::class);
 
     $candidat = Candidat::where('nom_candidat', 'Marie Martin')->first();
 
